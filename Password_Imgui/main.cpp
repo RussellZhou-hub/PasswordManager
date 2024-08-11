@@ -15,6 +15,7 @@
 
 #include "GUI.h"
 #include "InputHandle.h"
+#include "Utils.h"
 
 GLFWwindow* Windows;
 
@@ -26,7 +27,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	Windows = glfwCreateWindow(1500, 900, "Password-Imgui",NULL,NULL);
+	Windows = glfwCreateWindow(width, height, "Password-Imgui",NULL,NULL);
 
 	glfwMakeContextCurrent(Windows);
 	glfwSwapInterval(0);
@@ -105,6 +106,13 @@ int main()
 		ImGui::DockSpaceOverViewport();
 
 		//DrawGUI();
+		
+		std::string executablePath = GetExecutablePath();
+		std::string directoryPath = std::filesystem::path(executablePath).parent_path().string();
+
+		// 修改文件路径，使其基于可执行文件所在目录
+		fileInfo.filepath = directoryPath + "\\accounts.json";
+
 		// 从文件加载账户信息
 		std::vector<AccountInfo>& accounts = LoadAccountsFromFile(fileInfo.filepath);
 		DrawModifyAccountWindow();

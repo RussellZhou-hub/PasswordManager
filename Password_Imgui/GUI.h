@@ -9,6 +9,9 @@
 
 #include "nlohmann/json.hpp"
 
+static int width = 1500;
+static int height = 900;
+
 void CopyStringToBuffer(const std::string& source, char* destBuffer, size_t bufferSize)
 {
     strncpy_s(destBuffer, bufferSize, source.c_str(), bufferSize - 1);
@@ -21,6 +24,7 @@ struct AccountInfo
     std::string password;
 	std::string serviceProvider; // 该账号服务提供商
 	std::string hint;   // 提示信息
+	bool isFilterd = true;
 };
 
 bool editInputInitialized = false; // 是否已经初始化修改密码的输入框
@@ -132,6 +136,13 @@ int selectedAccountIndex = 0;
 // 用于控制修改窗口的显示
 bool showModifyWindow = false;
 
+// 全局变量，控制是否显示修改确认窗口
+bool showConfirmationWindow = false;
+
+// 全局变量，控制是否显示新增确认窗口
+bool showConfirmationWindow_add = false;
+
+
 void DrawModifyAccountWindow()
 {
     if (selectedAccountIndex >= 0 && selectedAccountIndex < accounts.size())
@@ -167,14 +178,50 @@ void DrawModifyAccountWindow()
 
         if (ImGui::Button(u8"保存"))
         {
-            // 将修改后的用户名和密码保存回 accounts 数组
-            accounts[selectedAccountIndex].username = std::string(usernameBuffer);
-            accounts[selectedAccountIndex].password = std::string(passwordBuffer);
-			accounts[selectedAccountIndex].serviceProvider = std::string(providerBuffer);
-			accounts[selectedAccountIndex].hint = std::string(hintBuffer);
-            SaveAccountsToFile(fileInfo.filepath);
+            showConfirmationWindow = true; // 显示确认窗口
         }
         PopColoredButton();
+
+        // 如果 showConfirmationWindow 为 true，则显示确认窗口
+        if (showConfirmationWindow)
+        {
+            ImGui::OpenPopup(u8"警告");
+
+            if (ImGui::BeginPopupModal(u8"警告", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text(u8"这将会覆盖之前的账号信息，确定要保存修改吗？");
+
+                PushColoredButton(ImVec4(0.1f, 0.2f, 0.1f, 1.0f));
+                if (ImGui::Button(u8"确定"))
+                {
+                    // 执行保存操作
+                    accounts[selectedAccountIndex].username = std::string(usernameBuffer);
+                    accounts[selectedAccountIndex].password = std::string(passwordBuffer);
+                    accounts[selectedAccountIndex].serviceProvider = std::string(providerBuffer);
+                    accounts[selectedAccountIndex].hint = std::string(hintBuffer);
+                    SaveAccountsToFile(fileInfo.filepath);
+
+                    // 关闭确认窗口
+                    showConfirmationWindow = false;
+                    ImGui::CloseCurrentPopup();
+                }
+				PopColoredButton();
+
+                ImGui::SameLine();
+
+                PushColoredButton(ImVec4(0.2f, 0.1f, 0.1f, 1.0f));
+                if (ImGui::Button(u8"取消"))
+                {
+                    // 关闭确认窗口，不执行保存
+                    showConfirmationWindow = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                PopColoredButton();
+
+                ImGui::EndPopup();
+            }
+        }
+
 
 		ImGui::SameLine();
 		ImGui::Text(u8"  ");
@@ -183,14 +230,51 @@ void DrawModifyAccountWindow()
 		PushColoredButton(ImVec4(0.2f, 0.2f, 0.7f, 1.0f));
         if (ImGui::Button(u8"新增账户##"))
         {
-			accounts.push_back({ "username", "password","new provider","no hint"});
-			selectedAccountIndex = accounts.size() - 1;
-            editInputInitialized = false;
-
-            // 将新增的用户名和密码保存回 accounts 数组
-            SaveAccountsToFile(fileInfo.filepath);
+            showConfirmationWindow_add = true; // 显示确认窗口
+            
+            
         }
         PopColoredButton();
+
+        // 如果 showConfirmationWindow 为 true，则显示确认窗口
+        if (showConfirmationWindow_add)
+        {
+            ImGui::OpenPopup(u8"警告");
+
+            if (ImGui::BeginPopupModal(u8"警告", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text(u8"这将会新增一个账号信息，确定吗？");
+
+                PushColoredButton(ImVec4(0.1f, 0.2f, 0.1f, 1.0f));
+                if (ImGui::Button(u8"确定"))
+                {
+                    accounts.push_back({ "username", "password","new provider","no hint" });
+                    selectedAccountIndex = accounts.size() - 1;
+                    editInputInitialized = false;
+
+                    // 将新增的用户名和密码保存回 accounts 数组
+                    SaveAccountsToFile(fileInfo.filepath);
+
+                    // 关闭确认窗口
+                    showConfirmationWindow_add = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                PopColoredButton();
+
+                ImGui::SameLine();
+
+                PushColoredButton(ImVec4(0.2f, 0.1f, 0.1f, 1.0f));
+                if (ImGui::Button(u8"取消"))
+                {
+                    // 关闭确认窗口，不执行保存
+                    showConfirmationWindow_add = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                PopColoredButton();
+
+                ImGui::EndPopup();
+            }
+        }
 
         ImGui::End();
     }
@@ -198,6 +282,12 @@ void DrawModifyAccountWindow()
 
 // 搜索框文本
 static char searchQuery[128] = "";
+
+//static char buffer[64][64];
+
+void InitializeBuffers() {
+    //memset(buffer, 0, sizeof(buffer));
+}
 
 void DrawAccountInfos()
 {
@@ -214,39 +304,68 @@ void DrawAccountInfos()
     }
     PopColoredButton();
 
-    // 创建一个垂直滚动区域
-    ImGui::BeginChild("ScrollArea", ImVec2(0, 600), true, ImGuiWindowFlags_HorizontalScrollbar);
+    // 搜索匹配的账户信息
+    for (auto& account : accounts)
+    {
+        if (strstr(account.serviceProvider.c_str(), searchQuery) != nullptr ||
+            strstr(account.username.c_str(), searchQuery) != nullptr)
+        {
+            account.isFilterd = true;
+        }
+        else
+        {
+            account.isFilterd = false;
+        }
+    }
 
-    
+    // 创建一个垂直滚动区域
+    ImGui::BeginChild("ScrollArea", ImVec2(0, height-20), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+    //InitializeBuffers();
+    //ImGui::InputText(u8"用户 ", buffer[0], sizeof(buffer[0]));
 
     // 遍历账户信息并绘制每一个账号的用户名和密码
     for (auto i=0;i<accounts.size();i++)
     {
-        ImGui::TextColored(ImVec4(0.2f, 0.2f, 0.8f, 1.0f), u8"%s                   ", accounts[i].serviceProvider.c_str());
-        ImGui::SameLine();
-        if (ImGui::Button((u8"点这里修改此项账户##" + std::to_string(i)).c_str()))
+        if (!accounts[i].isFilterd) continue;
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.8f, 1.0f), u8"%s                   ", accounts[i].serviceProvider.c_str());
+
+        // 获取可用区域的宽度
+        float contentWidth = ImGui::GetContentRegionAvail().x;
+        // 调整按钮的位置，使其向右对齐
+        ImGui::SameLine(contentWidth - ImGui::CalcTextSize(u8"修改此项").x - ImGui::GetStyle().ItemSpacing.x);
+
+
+        PushColoredButton(ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+        if (ImGui::Button((u8"修改此项##" + std::to_string(i)).c_str()))
         {
             selectedAccountIndex = i;
             editInputInitialized = false;
         }
+        PopColoredButton();
         ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f), u8"用户名:  ");
         ImGui::SameLine();
         ImGui::Text(u8" %s  ", accounts[i].username.c_str());
-        //ImGui::InputText(u8" ", accounts[i].username.data(), IM_ARRAYSIZE(accounts[i].username.data()), ImGuiInputTextFlags_None, 0, accounts[i].username.data());
+
+        PushColoredButton(ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
 
         if (ImGui::Button((u8"复制用户名##" + std::to_string(i)).c_str()))
         {
             ImGui::SetClipboardText(accounts[i].username.c_str());  // 复制用户名到剪贴板
         }
+
+		PopColoredButton();
         
         ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f), u8"密码:  ");
         ImGui::SameLine();
         ImGui::Text(u8" %s  ", accounts[i].password.c_str());
 
+        PushColoredButton(ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
         if (ImGui::Button((u8"复制密码##" + std::to_string(i)).c_str()))
         {
             ImGui::SetClipboardText(accounts[i].password.c_str());  // 复制密码到剪贴板
         }
+        PopColoredButton();
 
         ImGui::Separator();
     }
