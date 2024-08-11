@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "nlohmann/json.hpp"
+#include "Utils.h"
 
 static int width = 1500;
 static int height = 900;
@@ -17,15 +18,6 @@ void CopyStringToBuffer(const std::string& source, char* destBuffer, size_t buff
     strncpy_s(destBuffer, bufferSize, source.c_str(), bufferSize - 1);
     destBuffer[bufferSize - 1] = '\0'; // 确保字符串以 null 结尾
 }
-
-struct AccountInfo
-{
-    std::string username;
-    std::string password;
-	std::string serviceProvider; // 该账号服务提供商
-	std::string hint;   // 提示信息
-	bool isFilterd = true;
-};
 
 bool editInputInitialized = false; // 是否已经初始化修改密码的输入框
 
@@ -304,11 +296,16 @@ void DrawAccountInfos()
     }
     PopColoredButton();
 
+    std::string lowerQuery = ToLower(searchQuery);
+
     // 搜索匹配的账户信息
     for (auto& account : accounts)
     {
-        if (strstr(account.serviceProvider.c_str(), searchQuery) != nullptr ||
-            strstr(account.username.c_str(), searchQuery) != nullptr)
+        std::string lowerServiceProvider = ToLower(account.serviceProvider);
+        std::string lowerUsername = ToLower(account.username);
+
+        if (lowerServiceProvider.find(lowerQuery) != std::string::npos ||
+            lowerUsername.find(lowerQuery) != std::string::npos)
         {
             account.isFilterd = true;
         }

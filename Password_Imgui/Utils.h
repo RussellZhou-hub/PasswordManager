@@ -17,6 +17,15 @@ std::string GetExecutablePath() {
 
 #endif
 
+struct AccountInfo
+{
+    std::string username;
+    std::string password;
+    std::string serviceProvider; // 该账号服务提供商
+    std::string hint;   // 提示信息
+    bool isFilterd = true;
+};
+
 void LoadAccountsFromTextFile(const std::string& filepath, std::vector<AccountInfo>& accounts) {
     std::ifstream file(filepath);
 
@@ -49,4 +58,11 @@ void LoadAccountsFromTextFile(const std::string& filepath, std::vector<AccountIn
     }
 
     file.close();
+}
+
+// 将字符串转换为小写
+std::string ToLower(const std::string& str) {
+    std::string lowerStr = str;
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    return lowerStr;
 }
