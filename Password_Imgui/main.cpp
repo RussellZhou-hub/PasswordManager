@@ -19,6 +19,8 @@
 
 GLFWwindow* Windows;
 
+static std::string executablePath;
+static std::string directoryPath;
 
 int main()
 {
@@ -36,8 +38,15 @@ int main()
 	ImGui::CreateContext(NULL);
 	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
+
+	executablePath = GetExecutablePath();
+	directoryPath = std::filesystem::path(executablePath).parent_path().string();
+	// 修改文件路径，使其基于可执行文件所在目录
+	fileInfo.filepath = directoryPath + "\\accounts.json";
+	std::string ttfPath = directoryPath + "\\SimHei.ttf";
+
 	//io.Fonts->AddFontFromFileTTF("kaiu.ttf", 30.0f,NULL,io.Fonts->GetGlyphRangesChineseFull());
-	io.Fonts->AddFontFromFileTTF("SimHei.ttf", 30.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.Fonts->AddFontFromFileTTF(ttfPath.c_str(), 30.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
 
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiViewportFlags_NoDecoration;
@@ -106,12 +115,6 @@ int main()
 		ImGui::DockSpaceOverViewport();
 
 		//DrawGUI();
-		
-		std::string executablePath = GetExecutablePath();
-		std::string directoryPath = std::filesystem::path(executablePath).parent_path().string();
-
-		// 修改文件路径，使其基于可执行文件所在目录
-		fileInfo.filepath = directoryPath + "\\accounts.json";
 
 		// 从文件加载账户信息
 		std::vector<AccountInfo>& accounts = LoadAccountsFromFile(fileInfo.filepath);
