@@ -27,7 +27,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	Windows = glfwCreateWindow(width, height, "Password-Imgui",NULL,NULL);
+	Windows = glfwCreateWindow(width, height, "Password-Manager",NULL,NULL);
 
 	glfwMakeContextCurrent(Windows);
 	glfwSwapInterval(0);
