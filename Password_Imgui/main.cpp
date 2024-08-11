@@ -118,6 +118,8 @@ int main()
 
 		// 从文件加载账户信息
 		std::vector<AccountInfo>& accounts = LoadAccountsFromFile(fileInfo.filepath);
+		//std::string txtPath = directoryPath + "\\password.txt";
+		//LoadAccountsFromTextFile(txtPath, accounts);
 		DrawModifyAccountWindow();
 		DrawAccountInfos();
 
